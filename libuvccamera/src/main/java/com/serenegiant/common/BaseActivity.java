@@ -29,8 +29,8 @@ import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.support.annotation.NonNull;
-import android.support.annotation.StringRes;
+//import android.support.annotation.NonNull;
+//import android.support.annotation.StringRes;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -158,7 +158,7 @@ public class BaseActivity extends AppCompatActivity
 	 * Toastでメッセージを表示
 	 * @param msg
 	 */
-	protected void showToast(@StringRes final int msg, final Object... args) {
+	protected void showToast(/*@StringRes*/ final int msg, final Object... args) {
 		removeFromUiThread(mShowToastTask);
 		mShowToastTask = new ShowToastTask(msg, args);
 		runOnUiThread(mShowToastTask, 0);
@@ -184,7 +184,7 @@ public class BaseActivity extends AppCompatActivity
 	private final class ShowToastTask implements Runnable {
 		final int msg;
 		final Object args;
-		private ShowToastTask(@StringRes final int msg, final Object... args) {
+		private ShowToastTask(/*@StringRes*/ final int msg, final Object... args) {
 			this.msg = msg;
 			this.args = args;
 		}
@@ -236,7 +236,7 @@ public class BaseActivity extends AppCompatActivity
 	 * @param grantResults
 	 */
 	@Override
-	public void onRequestPermissionsResult(final int requestCode, @NonNull final String[] permissions, @NonNull final int[] grantResults) {
+	public void onRequestPermissionsResult(final int requestCode, /*@NonNull*/ final String[] permissions, /*@NonNull*/ final int[] grantResults) {
 		super.onRequestPermissionsResult(requestCode, permissions, grantResults);	// 何もしてないけど一応呼んどく
 		final int n = Math.min(permissions.length, grantResults.length);
 		for (int i = 0; i < n; i++) {

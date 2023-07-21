@@ -67,6 +67,7 @@ UVCPreview::UVCPreview(uvc_device_handle_t *devh)
 	captureQueu(NULL),
 	mFrameCallbackObj(NULL),
 	mFrameCallbackFunc(NULL),
+	mFrameTimestampCallbackObj(NULL),
 	callbackPixelBytes(2) {
 
 	ENTER();
@@ -244,6 +245,39 @@ int UVCPreview::setFrameCallback(JNIEnv *env, jobject frame_callback_obj, int pi
 		if (frame_callback_obj) {
 			mPixelFormat = pixel_format;
 			callbackPixelFormatChanged();
+		}
+	}
+	pthread_mutex_unlock(&capture_mutex);
+	RETURN(0, int);
+}
+
+int UVCPreview::setFrameTimestampCallback(JNIEnv *env, jobject frame_timestamp_callback_obj) {
+
+	ENTER();
+	pthread_mutex_lock(&capture_mutex);
+	{
+		if (!env->IsSameObject(mFrameTimestampCallbackObj, frame_timestamp_callback_obj))	{
+			iframetimestampcallback_fields.onFrameTimestamp = NULL;
+			if (mFrameTimestampCallbackObj) {
+				env->DeleteGlobalRef(mFrameTimestampCallbackObj);
+			}
+			mFrameTimestampCallbackObj = frame_timestamp_callback_obj;
+			if (frame_timestamp_callback_obj) {
+				// get method IDs of Java object for callback
+				jclass clazz = env->GetObjectClass(frame_timestamp_callback_obj);
+				if (LIKELY(clazz)) {
+					iframetimestampcallback_fields.onFrameTimestamp = env->GetMethodID(clazz,
+						"onFrameTimestamp",	"(Ljava/nio/LongBuffer;)V");
+				} else {
+					LOGW("failed to get object class");
+				}
+				env->ExceptionClear();
+				if (!iframetimestampcallback_fields.onFrameTimestamp) {
+					LOGE("Can't find IFrameTimestampCallback#onFrameTimestamp");
+					env->DeleteGlobalRef(frame_timestamp_callback_obj);
+					mFrameTimestampCallbackObj = frame_timestamp_callback_obj = NULL;
+				}
+			}
 		}
 	}
 	pthread_mutex_unlock(&capture_mutex);
@@ -856,6 +890,11 @@ void UVCPreview::do_capture_callback(JNIEnv *env, uvc_frame_t *frame) {
 
 	if (LIKELY(frame)) {
 		uvc_frame_t *callback_frame = frame;
+		if (mFrameTimestampCallbackObj) {
+		    env->CallVoidMethod(mFrameTimestampCallbackObj, iframetimestampcallback_fields.onFrameTimestamp,
+		        int64_t(frame->capture_time.tv_sec)*1000000LL + int64_t(frame->capture_time.tv_usec));
+		    env->ExceptionClear();
+		}
 		if (mFrameCallbackObj) {
 			if (mFrameCallbackFunc) {
 				callback_frame = get_frame(callbackPixelBytes);
